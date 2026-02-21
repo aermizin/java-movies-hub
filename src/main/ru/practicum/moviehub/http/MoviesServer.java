@@ -15,7 +15,7 @@ public class MoviesServer {
 
 
     public MoviesServer(MoviesStore store, int port) {
-        try (LogManager logManager = new LogManager(outputLogFileName)){
+        try (LogManager logManager = new LogManager(outputLogFileName)) {
             server = HttpServer.create(new InetSocketAddress(port), 0);
             server.createContext("/movies", new MoviesHandler(store, logManager));
         } catch (IOException e) {
