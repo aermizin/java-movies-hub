@@ -412,7 +412,7 @@ public class MoviesApiTest {
         Movie testMovie2 = new Movie("Остров проклятых", 2009, 1);
         String jsonRequest2 = gson.toJson(testMovie2);
 
-        HttpRequest postReq2= HttpRequest.newBuilder()
+        HttpRequest postReq2 = HttpRequest.newBuilder()
                 .uri(URI.create(BASE + "/movies"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonRequest2))
