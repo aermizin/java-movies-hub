@@ -18,7 +18,7 @@ import java.util.Optional;
 public class MoviesHandler extends BaseHttpHandler {
 
     private final MoviesStore store;
-    final private LogManager logManager;
+    private final LogManager logManager;
     Gson gson = new Gson();
 
     public MoviesHandler(MoviesStore store, LogManager logManager) {
