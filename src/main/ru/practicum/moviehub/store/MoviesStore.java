@@ -15,7 +15,7 @@ public class MoviesStore {
     public static final int EARLIEST_FILM_YEAR = 1888;
     public static final int CURRENT_YEAR = LocalDate.now().getYear();
 
-    private HashMap<Integer,Movie> movieMap = new HashMap<>();
+    private HashMap<Integer, Movie> movieMap = new HashMap<>();
     private Set<Integer> usedIds = new HashSet<>();
     private Random random = new Random();
 
