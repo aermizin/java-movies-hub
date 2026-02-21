@@ -27,7 +27,7 @@ public class MoviesStore {
         }
     }
 
-    public Movie addMovie(String requestBody) throws IOException {
+    public Movie addMovie(String requestBody) {
         Gson gson = new Gson();
         Movie movieClass = gson.fromJson(requestBody, Movie.class);
 
