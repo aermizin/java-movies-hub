@@ -68,7 +68,7 @@ public class MoviesStore {
         movieMap.remove(id);
     }
 
-    private Optional<List<String>> isValidMovie (String title, int year) {
+    private Optional<List<String>> isValidMovie(String title, int year) {
         List<String> errors = new ArrayList<>();
 
         boolean errorTitle = (title.length() >= MAX_TITLE_LENGTH) || title.isBlank();
