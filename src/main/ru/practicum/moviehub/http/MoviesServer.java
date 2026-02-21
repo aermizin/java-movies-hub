@@ -1,6 +1,7 @@
 package ru.practicum.moviehub.http;
 
 import com.sun.net.httpserver.HttpServer;
+import ru.practicum.moviehub.LogManager;
 import ru.practicum.moviehub.store.MoviesStore;
 
 import java.io.IOException;
@@ -8,11 +9,15 @@ import java.net.InetSocketAddress;
 
 public class MoviesServer {
     private final HttpServer server;
+    LogManager logManager;
 
-    public MoviesServer() {
-        try {
-            server = HttpServer.create(new InetSocketAddress(8080), 0);
-            server.createContext("/movies", new MoviesHandler(MoviesStore server));
+    String outputLogFileName = "log.txt";
+
+
+    public MoviesServer(MoviesStore store, int port) {
+        try (LogManager logManager = new LogManager(outputLogFileName)){
+            server = HttpServer.create(new InetSocketAddress(port), 0);
+            server.createContext("/movies", new MoviesHandler(store, logManager));
         } catch (IOException e) {
             throw new RuntimeException("Не удалось создать HTTP-сервер", e);
         }
@@ -21,10 +26,11 @@ public class MoviesServer {
     public void start() {
         server.start();
         System.out.println("Сервер запущен");
+
     }
 
-    public void stop(int timeout) {
-        server.stop(timeout);
+    public void stop() {
+        server.stop(2);
         System.out.println("Сервер остановлен");
     }
 }

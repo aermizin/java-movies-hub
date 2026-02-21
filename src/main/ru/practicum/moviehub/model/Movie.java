@@ -1,8 +1,6 @@
 package ru.practicum.moviehub.model;
 
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.Objects;
 
 public class Movie {
 
@@ -10,22 +8,46 @@ public class Movie {
     protected int year;
     protected int id;
 
-    public Movie() {
+    public Movie(String title, int year, int id) {
         this.title = title;
         this.year = year;
-        this.id = generateUniqueId();
+        this.id = id;
     }
 
-    private static final Set<Integer> USED_IDS = new HashSet<>();
-    private static final Random RANDOM = new Random();
+    public String getTitle() {
+        return title;
+    }
 
-    private int generateUniqueId() {
+    public int getYear() {
+        return year;
+    }
 
-        while (true) {
-            int numberRandom = RANDOM.nextInt(1_000_000);
-            if (USED_IDS.add(numberRandom)) {
-                return numberRandom;
-            }
-        }
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    @Override
+    public String toString() {
+        return "Movie{" +
+                "title='" + title + '\'' +
+                ", year=" + year +
+                ", id=" + id +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Movie movie = (Movie) o;
+        return year == movie.year && id == movie.id && Objects.equals(title, movie.title);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(title, year, id);
     }
 }

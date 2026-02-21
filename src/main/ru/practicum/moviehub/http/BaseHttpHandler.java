@@ -11,20 +11,20 @@ abstract class BaseHttpHandler implements HttpHandler {
     protected static final String CT_JSON = "application/json; charset=UTF-8";
 
     protected void sendJson(HttpExchange ex, int status, String json) throws IOException {
+        byte[] jsonBytes = json.getBytes(StandardCharsets.UTF_8);
 
         ex.getResponseHeaders().set("Content-Type", CT_JSON);
-        ex.sendResponseHeaders(status, json.length());
+        ex.sendResponseHeaders(status, jsonBytes.length);
 
-        // Преобразуем строку в байты с указанием кодировки
         try (OutputStream os = ex.getResponseBody()) {
             os.write(json.getBytes(StandardCharsets.UTF_8));
         }
     }
 
-    protected void sendNoContent(HttpExchange ex) throws java.io.IOException {
+    protected void sendNoContent(HttpExchange ex, int status) throws java.io.IOException {
 
         ex.getResponseHeaders().set("Content-Type", CT_JSON);
-        ex.sendResponseHeaders(204, -1);
+        ex.sendResponseHeaders(status, -1);
         ex.close();
     }
 }
