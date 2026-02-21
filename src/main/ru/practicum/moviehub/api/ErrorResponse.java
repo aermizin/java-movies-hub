@@ -5,9 +5,9 @@ import java.util.List;
 
 public class ErrorResponse extends RuntimeException  {
 
-    final private int status;
-    final private String error;
-    final private List<String> errors;
+    private final int status;
+    private final String error;
+    private final List<String> errors;
 
     public ErrorResponse(int status, String error, List<String> errors) {
         this.status = status;
