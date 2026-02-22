@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 public class MoviesStore {
 
-    private final Map <Integer, Movie> movieMap = new HashMap<>();
+    private final Map<Integer, Movie> movieMap = new HashMap<>();
     private final Set<Integer> usedIds = new HashSet<>();
     private final Random random = new Random();
 
