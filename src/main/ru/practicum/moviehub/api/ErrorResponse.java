@@ -3,7 +3,7 @@ package ru.practicum.moviehub.api;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public class ErrorResponse extends RuntimeException  {
+public class ErrorResponse {
 
     private final int status;
     private final String error;

@@ -9,7 +9,6 @@ import java.net.InetSocketAddress;
 
 public class MoviesServer {
     private final HttpServer server;
-    LogManager logManager;
 
     String outputLogFileName = "log.txt";
 

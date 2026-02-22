@@ -12,14 +12,21 @@ import ru.practicum.moviehub.store.MoviesStore;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class MoviesHandler extends BaseHttpHandler {
+    static final String MOVIES_ENDPOINT = "/movies";
+
+    private static final int MAX_TITLE_LENGTH = 100;
+    private static final int EARLIEST_FILM_YEAR = 1888;
+    private static final int CURRENT_YEAR = LocalDate.now().getYear();
 
     private final MoviesStore store;
     private final LogManager logManager;
-    Gson gson = new Gson();
+    private final Gson gson = new Gson();
+    ErrorResponse error;
 
     public MoviesHandler(MoviesStore store, LogManager logManager) {
         this.store = store;
@@ -53,49 +60,46 @@ public class MoviesHandler extends BaseHttpHandler {
         String query = ex.getRequestURI().getQuery();
 
         try {
-            if (path.equals("/movies") && query == null) {
-                Optional<List<Movie>> optionalMovies = store.getAllMovies();
-                if (optionalMovies.isPresent()) {
-                    List<Movie> movies = optionalMovies.get();
-                    String jsonResponse = gson.toJson(movies);
-                    sendJson(ex, 200, jsonResponse);
-                } else {
-                    sendJson(ex, 200, "[]");
-                }
-            } else if (path.startsWith("/movies/")) {
+            if (path.equals(MOVIES_ENDPOINT) && query == null) {
+                List<Movie> movies = store.getAllMovies();
+                String jsonResponse = gson.toJson(movies);
+                sendJson(ex, 200, jsonResponse);
+            } else if (path.startsWith(MOVIES_ENDPOINT + "/")) {
                 String idPart = path.substring("/movies/".length());
 
-                try {
-                    int id = Integer.parseInt(idPart);
-                    Movie movie = store.getMovieById(id);
-                    String jsonResponse = gson.toJson(movie);
-                    sendJson(ex, 200, jsonResponse);
-                } catch (NumberFormatException e) {
-                    sendJson(ex, 400, "Неверный формат идентификатора фильма.");
-                    logManager.logInfo(e.getMessage());
+                int id = Integer.parseInt(idPart);
+                Movie movieById = store.getMovieById(id);
+
+                if (movieById == null) {
+                    error = new ErrorResponse(404, "Фильм не найден");
+                    String jsonResponse = gson.toJson(error.getError());
+                    sendJson(ex, error.getStatus(), jsonResponse);
+                    return;
                 }
+
+                String jsonResponse = gson.toJson(movieById);
+                sendJson(ex, 200, jsonResponse);
             } else if (query != null && query.contains("year=")) {
                 String yearStr = query.substring(query.indexOf('=') + 1).trim();
 
-                try {
-                    int year = Integer.parseInt(yearStr);
-                    Optional<List<Movie>> optionalMoviesByReleaseYear = store.filterMoviesByReleaseYear(year);
-                    if (optionalMoviesByReleaseYear.isPresent()) {
-                        List<Movie> moviesByReleaseYear = optionalMoviesByReleaseYear.get();
-                        String jsonResponse = gson.toJson(moviesByReleaseYear);
-                        sendJson(ex, 200, jsonResponse);
-                    } else {
-                        sendJson(ex, 200, "[]");
-                    }
-                } catch (NumberFormatException e) {
-                    sendJson(ex, 400, "Некорректный формат года. Ожидается число.");
-                    logManager.logInfo(e.getMessage());
+                int year = Integer.parseInt(yearStr);
+                List<Movie> moviesByReleaseYear = store.filterMoviesByReleaseYear(year);
+
+                if (moviesByReleaseYear == null) {
+                    error = new ErrorResponse(404, "Фильм не найден.");
+                    String jsonResponse = gson.toJson(error.getError());
+                    sendJson(ex, error.getStatus(), jsonResponse);
+                    return;
                 }
+
+                String jsonResponse = gson.toJson(moviesByReleaseYear);
+                sendJson(ex, 200, jsonResponse);
             } else {
                 sendJson(ex, 404, "Endpoint не найден.");
             }
-        } catch (ErrorResponse e) {
-            sendJson(ex, e.getStatus(), e.getError());
+        } catch (NumberFormatException e) {
+            sendJson(ex, 400, "Некорректный формат числового параметра в запросе.");
+            logManager.logInfo(e.getMessage());
         }
     }
 
@@ -114,42 +118,72 @@ public class MoviesHandler extends BaseHttpHandler {
         String requestBody = new String(bodyInputStream.readAllBytes(), StandardCharsets.UTF_8);
 
         try {
-            if (path.equals("/movies")) {
-                try {
-                    Movie movie = store.addMovie(requestBody);
-                    String jsonResponse = gson.toJson(movie);
-                    sendJson(ex, 201, jsonResponse);
-                } catch (JsonSyntaxException e) {
-                    sendJson(ex, 400, "Некорректный JSON: " + e.getMessage());
-                    logManager.logInfo(e.getMessage());
-                }
+            Movie parsedMovie = gson.fromJson(requestBody, Movie.class);
+            List<String> errors = isValidMovie(parsedMovie);
+
+            if (!errors.isEmpty()) {
+                error = new ErrorResponse(422, "Ошибка валидации.", errors);
+                String jsonResponse = gson.toJson(error.getError() + error.getErrors());
+                sendJson(ex, error.getStatus(), jsonResponse);
+                return;
+            }
+
+            if (path.equals(MOVIES_ENDPOINT)) {
+                Movie movie = store.addMovie(parsedMovie);
+                String jsonResponse = gson.toJson(movie);
+                sendJson(ex, 201, jsonResponse);
             } else {
                 sendJson(ex, 404, "Endpoint не найден.");
             }
-        } catch (ErrorResponse e) {
-            String jsonResponse = gson.toJson(e.getError() + e.getErrors());
-            sendJson(ex, e.getStatus(), jsonResponse);
+        } catch (JsonSyntaxException e) {
+            sendJson(ex, 400, "Некорректный JSON: " + e.getMessage());
+            logManager.logInfo(e.getMessage());
         }
     }
 
     private void handleDelete(HttpExchange ex) throws IOException {
         String path = ex.getRequestURI().getPath();
         try {
-            if (path.startsWith("/movies/")) {
-                try {
-                    String idPart = path.substring("/movies/".length());
-                    int id = Integer.parseInt(idPart);
-                    store.deleteMovieById(id);
-                    sendNoContent(ex, 204);
-                } catch (NumberFormatException e) {
-                    sendJson(ex, 400, "Неверный формат идентификатора фильма.");
-                    logManager.logInfo(e.getMessage());
+            if (path.startsWith(MOVIES_ENDPOINT + "/")) {
+                String idPart = path.substring("/movies/".length());
+                int id = Integer.parseInt(idPart);
+                Movie movie = store.deleteMovieById(id);
+
+                if (movie == null) {
+                    error = new ErrorResponse(404, "Фильм не найден.");
+                    String jsonResponse = gson.toJson(error.getError());
+                    sendJson(ex, error.getStatus(), jsonResponse);
+                    return;
                 }
+
+                sendNoContent(ex, 204);
             } else {
                 sendJson(ex, 404, "Endpoint не найден.");
             }
-        } catch (ErrorResponse e) {
-            sendJson(ex, e.getStatus(), e.getError());
+        } catch (NumberFormatException e) {
+            sendJson(ex, 400, "Некорректный формат числового параметра в запросе.");
+            logManager.logInfo(e.getMessage());
         }
+    }
+
+    private List<String> isValidMovie(Movie movie) {
+        List<String> errors = new ArrayList<>();
+
+        String title = movie.getTitle();
+        int year = movie.getYear();
+
+        boolean errorTitle = (title.length() >= MAX_TITLE_LENGTH) || title.isBlank();
+        boolean errorYear = (year < EARLIEST_FILM_YEAR) || (year > CURRENT_YEAR);
+
+        if (errorTitle) {
+            errors.add("Название фильма не должно быть пустым или иметь больше 100 символов.");
+        }
+
+        if (errorYear) {
+            errors.add("Год выпуска не может быть больше текущего года. Год самого раннего из сохранившихся " +
+                    "фильмов — 1888.");
+        }
+
+        return errors;
     }
 }
