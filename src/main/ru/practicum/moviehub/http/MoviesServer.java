@@ -1,5 +1,35 @@
 package ru.practicum.moviehub.http;
 
-public class MoviesServer {
+import com.sun.net.httpserver.HttpServer;
+import ru.practicum.moviehub.LogManager;
+import ru.practicum.moviehub.store.MoviesStore;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+
+public class MoviesServer {
+    private final HttpServer server;
+
+    String outputLogFileName = "log.txt";
+
+
+    public MoviesServer(MoviesStore store, int port) {
+        try (LogManager logManager = new LogManager(outputLogFileName)) {
+            server = HttpServer.create(new InetSocketAddress(port), 0);
+            server.createContext("/movies", new MoviesHandler(store, logManager));
+        } catch (IOException e) {
+            throw new RuntimeException("Не удалось создать HTTP-сервер", e);
+        }
+    }
+
+    public void start() {
+        server.start();
+        System.out.println("Сервер запущен");
+
+    }
+
+    public void stop() {
+        server.stop(2);
+        System.out.println("Сервер остановлен");
+    }
 }
